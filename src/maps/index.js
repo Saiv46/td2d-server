@@ -1,0 +1,21 @@
+module.exports = {
+  // HideAndSeek2: ,
+  // RavineMist: ,
+  // DotDotDot: ,
+  // DesertTown: ,
+  // YouCantRun: ,
+  // LimpCity: ,
+  // NotPerfect: ,
+  // KindAndFair: ,
+  // Act9: ,
+  // NastyParadise: ,
+  // PricelessFreedom: ,
+  // VolcanoValley: ,
+  // GreenHill: ,
+  // MajinForest: ,
+  // AngelIsland: ,
+  // TortureCave: ,
+  // DarkTower: ,
+  // HauntingDream: ,
+  FartZone: require('./FartZone')
+}
