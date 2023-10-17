@@ -3,10 +3,11 @@ const { KickReasons } = require('../utils/constants')
 
 class BaseLobby {
   constructor (server) {
+    this.uuid = crypto.randomUUID()
     this.ac = new AbortController()
     this.server = server
     this.sessions = new Map()
-    this.heartbeatLoop()
+    this.heartbeatLoop().catch(() => {})
   }
 
   destroy () {

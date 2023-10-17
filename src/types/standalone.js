@@ -2,6 +2,7 @@ const { GameTimers } = require('td2d-protocol')
 const BaseLobby = require('./_base')
 const ColorString = require('../utils/colorstring')
 const { KickReasons } = require('../utils/constants')
+const Maps = require('../maps')
 
 class StandaloneLobby extends BaseLobby {
   static DefaultRules = {
@@ -15,7 +16,7 @@ class StandaloneLobby extends BaseLobby {
   static ValidateRules (rules) {
     if (rules.maxLobbyPlayers < 1) return 'too few players'
     if (rules.maxLobbyPlayers > 100) return 'too much players'
-    if (rules.uniqueCharacters && rules.maxLobbyPlayers > 7) return 'not enough characters'
+    if (rules.uniqueCharacters && rules.maxLobbyPlayers > 7) { return 'not enough characters' }
     return null
   }
 
@@ -27,12 +28,12 @@ class StandaloneLobby extends BaseLobby {
     this.selectedMap = null
     this.mapState = null
     this.characters = new WeakMap()
-    this.allowedMaps = Object.keys(this.enums().maps.byName).filter(v => v !== 'FartZone')
-    this.countdownLoop()
+    this.allowedMaps = ['FartZone']
+    // this.allowedMaps = Object.keys(this.enums().maps.byName).filter(v => v !== 'FartZone')
+    this.countdownLoop().catch(() => {})
   }
 
-  destroy (graceful = false) {
-    if (!graceful) this.chatBroadcast(`${ColorString.RED}lobby was destroyed`)
+  destroy () {
     for (const session of this.sessions.values()) {
       session.joinLobby(this.server.defaultLobby)
     }
@@ -56,12 +57,20 @@ class StandaloneLobby extends BaseLobby {
     for await (const _ of GameTimers.steadyInterval(null, this.ac.signal)) {
       if (!this.sessions.size) return this.destroy()
       if (!timer) break
-      this.broadcast('ServerCountdown', { isCounting: true , inSeconds: timer-- })
+      this.broadcast('ServerCountdown', {
+        isCounting: true,
+        inSeconds: timer--
+      })
     }
-    this.mapVoteLoop()
+    return this.mapVoteLoop()
   }
 
   async mapVoteLoop () {
+    if (this.rules.skipMapVote || this.allowedMaps.length === 1) {
+      this.selectedMap =
+        this.allowedMaps[(Math.random() * this.allowedMaps.length) | 0]
+      return this.characterSelectLoop()
+    }
     this.waiting = false
     const voteResults = [0, 0, 0]
     const maps = this.allowedMaps
@@ -98,13 +107,13 @@ class StandaloneLobby extends BaseLobby {
       session.off('ClientMapVote')
       pendingVotes.delete(session)
     }
-    this.characterSelectLoop()
+    return this.characterSelectLoop()
   }
 
   async characterSelectLoop () {
     const ids = Array.from(this.sessions.keys())
     const charsTaken = []
-    this.selectedEXE = ids[Math.random() * ids.length | 0]
+    this.selectedEXE = ids[(Math.random() * ids.length) | 0]
     this.broadcast('ServerCharSelectStart', {
       currentEXE: this.selectedEXE,
       selectedMap: this.enums().maps.byName[this.selectedMap]
@@ -112,25 +121,39 @@ class StandaloneLobby extends BaseLobby {
     for (const session of this.sessions.values()) {
       this.characters.delete(session)
       if (session.id === this.selectedEXE) {
-        session.once('ClientExeCharacterRequest', characterId => {
+        session.once('ClientExeCharacterRequest', (characterId) => {
           const character = this.enums().exeCharacters.byId[characterId]
           if (!character) return this.triggerAnticheat(session)
           charsTaken.push(-characterId)
           session.write('ServerExeCharacterSuccess', characterId)
-          this.broadcast('ServerCharSelectUpdate', { clientId: session.id, characterId }, session)
+          this.broadcast(
+            'ServerCharSelectUpdate',
+            { clientId: session.id, characterId },
+            session
+          )
           this.characters.set(session, character)
         })
       } else {
-        session.once('ClientCharacterRequest', characterId => {
+        session.once('ClientCharacterRequest', (characterId) => {
           const character = this.enums().characters.byId[characterId]
           if (!character) return this.triggerAnticheat(session)
           if (this.rules.uniqueCharacters && charsTaken.has(characterId)) {
-            session.write('ServerCharacterResponse', { characterId, success: false })
+            session.write('ServerCharacterResponse', {
+              characterId,
+              success: false
+            })
             return
           }
           charsTaken.push(characterId)
-          session.write('ServerCharacterResponse', { characterId, success: true })
-          this.broadcast('ServerCharSelectUpdate', { clientId: session.id, characterId }, session)
+          session.write('ServerCharacterResponse', {
+            characterId,
+            success: true
+          })
+          this.broadcast(
+            'ServerCharSelectUpdate',
+            { clientId: session.id, characterId },
+            session
+          )
           this.characters.set(session, character)
         })
       }
@@ -148,20 +171,21 @@ class StandaloneLobby extends BaseLobby {
         session.off('ClientExeCharacterRequest')
       } else session.disconnect(KickReasons.AfkTimeout)
     }
-    this.gameLoop()
+    return this.gameLoop()
   }
 
   async gameLoop () {
     this.broadcast('ServerGameStart')
     try {
-      this.mapState = new Map(this)
+      this.mapState = new Maps[this.selectedMap](this)
       await this.mapState.init()
     } catch (e) {
       this.broadcast('ServerReturnToLobby')
       console.trace(e)
       this.chatBroadcast(`${ColorString.RED}Map failed to load:`)
-      this.chatBroadcast(ColorString.RED + e.message)
-      countdownLoop()      
+      this.chatBroadcast(ColorString.RED + e.message.toLowerCase())
+      this.chatBroadcast(`${ColorString.YELLOW}Restarting game...`)
+      this.countdownLoop()
       return
     }
     for (const session of this.sessions.values()) {
@@ -177,7 +201,7 @@ class StandaloneLobby extends BaseLobby {
       this.mapState.unregister(session)
     }
     this.broadcast('ServerReturnToLobby')
-    this.destroy(true)
+    return this.destroy()
   }
 
   onChatMessage (session, message) {
@@ -186,7 +210,9 @@ class StandaloneLobby extends BaseLobby {
       switch (plain) {
         case '.h':
         case '.help':
-          session.chat(`${ColorString.WHITE}Press ${ColorString.YELLOW}ready ${ColorString.WHITE}to exit lobby`)
+          session.chat(
+            `${ColorString.WHITE}Press ${ColorString.YELLOW}ready ${ColorString.WHITE}to exit lobby`
+          )
           break
         case '.p':
         case '.practice':
@@ -208,7 +234,10 @@ class StandaloneLobby extends BaseLobby {
 
   onPlayerJoin (session) {
     this.broadcast('ServerPlayerJoined', session.id)
-    this.broadcast('ServerPlayerInfo', { clientId: session.id, ...session.identity })
+    this.broadcast('ServerPlayerInfo', {
+      clientId: session.id,
+      ...session.identity
+    })
     this.broadcast('ServerReadyState', { clientId: session.id, isReady: true })
     for (const [clientId, session2] of this.sessions.entries()) {
       session.write('ServerPlayerJoined', clientId)
