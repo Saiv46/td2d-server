@@ -10,8 +10,8 @@ const DefaultLobby = require('./types/default')
 async function makeServer () {
   const server = await createServer()
   server.defaultLobby = new DefaultLobby(server)
-  server.normalLobbies = new Set
-  server.inviteLobbies = new Map
+  server.normalLobbies = new Set()
+  server.inviteLobbies = new Map()
   server.database = new Database(server)
 
   server.on('connection', async client => {

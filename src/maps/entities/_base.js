@@ -2,6 +2,7 @@ class BaseEntity {
   constructor (id) {
     this.id = id
   }
+
   onCreated (map) {}
   onTick (map, deltaTime) {}
   onDestroy (map) {}

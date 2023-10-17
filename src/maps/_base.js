@@ -128,8 +128,6 @@ class BaseMap {
     if (!this.escapeActivated && this.escapeCondition && timer < this.escapeTime - this.escapeDelay) {
       this.activateEscapeSequence()
     }
-    
-    
     if (timer < -5) this.stopped = true
   }
 

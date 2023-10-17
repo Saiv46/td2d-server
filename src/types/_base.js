@@ -23,6 +23,7 @@ class BaseLobby {
   }
 
   onLobbyRequest () {}
+  onPlayerReady () {}
 
   onPlayerJoin (session) {
     this.sessions.set(session.id, session, this.constructor.name)
@@ -35,7 +36,11 @@ class BaseLobby {
   }
 
   chatBroadcast (message, session = null) {
-    this.broadcast('PassthroughChatMessage', { clientId: session?.id ?? 0, message }, session)
+    this.broadcast(
+      'PassthroughChatMessage',
+      { clientId: session?.id ?? 0, message },
+      session
+    )
   }
 
   broadcast (type, data, except = null) {

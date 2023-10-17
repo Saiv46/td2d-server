@@ -64,16 +64,24 @@ class StandaloneLobby extends BaseLobby {
   async mapVoteLoop () {
     this.waiting = false
     const voteResults = [0, 0, 0]
-    const maps = this.allowedMaps.sort(() => Math.sign(Math.random() - 0.5)).slice(0, 3)
+    const maps = this.allowedMaps
+      .sort(() => Math.sign(Math.random() - 0.5))
+      .slice(0, 3)
+    while (maps.length < 3) {
+      maps.push(maps.at(-1))
+    }
     const pendingVotes = new Set(this.sessions.values())
     for (const session of pendingVotes) {
-      session.once('ClientMapVote', index => {
+      session.once('ClientMapVote', (index) => {
         voteResults[index]++
         pendingVotes.delete(session)
         session.write('ServerVoteResults', voteResults)
       })
     }
-    this.broadcast('ServerVoteMaps', maps.map(v => this.enums().maps.byName[v]))
+    this.broadcast(
+      'ServerVoteMaps',
+      maps.map((v) => this.enums().maps.byName[v])
+    )
     let timer = 30
     // eslint-disable-next-line no-unused-vars
     for await (const _ of GameTimers.steadyInterval(null, this.ac.signal)) {

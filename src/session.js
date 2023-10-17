@@ -1,7 +1,7 @@
-const ColorString = require("./utils/colorstring")
+const ColorString = require('./utils/colorstring')
 
 class ClientSession {
-  constructor (client, identity) {
+  constructor (client) {
     this.id = (Math.random() * 0xffff) | 0
     this.lobby = null
     this.client = client

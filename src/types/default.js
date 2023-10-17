@@ -162,7 +162,7 @@ class DefaultLobby extends BaseLobby {
 
   onPlayerJoin (session) {
     super.onPlayerJoin(session)
-    if (session.lobbyRequested) this.onLobbyRequest(session)
+    this.onLobbyRequest(session)
   }
 
   onPlayerLeave (session) {
