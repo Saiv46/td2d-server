@@ -28,6 +28,7 @@ class BaseMap {
     this.limits = lobby.limits()
     this.entities = new Map()
     this.isexe = new WeakMap()
+    this.pings = new Map()
     this.positions = new WeakMap()
     this.cooldowns = new WeakMap()
   }
@@ -59,12 +60,12 @@ class BaseMap {
   }
 
   async init () {
-    
+
   }
 
   makeCooldown (session, name, timer) {
     const cds = this.cooldowns.get(session)
-    if (cds[name] && performance.now() - cds[name] < (timer + .5) * 1000) {
+    if (cds[name] && performance.now() - cds[name] < (timer + 0.5) * 1000) {
       this.lobby.triggerAnticheat(session)
       return false
     }
@@ -79,18 +80,22 @@ class BaseMap {
   }
 
   removeEntity (id) {
-    this.entities.get(id)?.onDestroy(map)
+    this.entities.get(id)?.onDestroy(this)
     this.entities.delete(id)
   }
 
   register (session) {
     this.cooldowns.set(session, {})
+    session.on('ClientPing', ({ timestamp, calculated }) => {
+      this.pings.set(session.id, (Date.now() - timestamp) | 0)
+      session.writeUdp('ServerPong', { timestamp })
+    })
     session.on('PassthroughPlayerState', state => {
       if (state.clientId !== session.id) return this.lobby.triggerAnticheat(session)
       this.lobby.broadcastUdp('PassthroughPlayerState', state, session)
     })
     switch (this.lobby.characters.get(session)) {
-      case "Tails":
+      case 'Tails':
         session.on('ClientTailsProjectileFire', params => {
           try {
             if (!this.makeCooldown(session, 'projectile', TailsProjectile.Cooldown)) throw new Error('TPOJ_COOLDOWN')
@@ -100,19 +105,26 @@ class BaseMap {
           }
           this.spawnEntity(TailsProjectile, params)
         })
-      case "Knuckles":
-      case "Eggman":
-      case "Amy":
-      case "Cream":
-      case "Sally":
+        break
+      case 'Knuckles':
+      case 'Eggman':
+      case 'Amy':
+      case 'Cream':
+      case 'Sally':
     }
   }
 
   unregister (session) {
     this.cooldowns.delete(session)
+    session.off('ClientPing')
+    session.off('PassthroughPlayerState')
+    session.off('ClientTailsProjectileFire')
   }
 
   interval (timer) {
+    for (const [clientId, calculated] of this.pings.entries()) {
+      this.lobby.broadcast('ServerPlayerPing', { clientId, calculated })
+    }
     if (this.timerStopped) {
       if (timer < -5) this.ended = true
       return
