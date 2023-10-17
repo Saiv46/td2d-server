@@ -24,7 +24,12 @@ async function makeServer () {
       client.write('ServerDisconnectReason', identity === null ? KickReasons.Kicked : KickReasons.ConnectTimeout)
       return client.destroy()
     }
-    const session = new ClientSession(client, identity)
+    const userdata = await server.database.getUserdata(identity.uuid)
+    if (userdata.banned) {
+      return session.disconnect(KickReasons.Banned)
+    }
+    session.identity = identity
+    session.userdata = userdata
     session.joinLobby(server.defaultLobby).catch(() => session.disconnect())
   })
   server.on('error', err => console.trace('Server unhandled error:', err))

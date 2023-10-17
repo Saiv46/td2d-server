@@ -5,7 +5,8 @@ class ClientSession {
     this.id = (Math.random() * 0xffff) | 0
     this.lobby = null
     this.client = client
-    this.identity = identity
+    this.userdata = null
+    this.identity = null
     this.write('ServerStatus', { isLobby: true, clientId: this.id })
     this.once('ClientPlayerInfoRequest', () => this.lobby?.onLobbyRequest(this))
     this.on('ClientLobbyReady', isReady => this.lobby?.onPlayerReady(this, isReady))
@@ -19,12 +20,15 @@ class ClientSession {
   get address () {
     return this.client.tcpSocket.remoteAddress
   }
+
   get uuid () {
     return this.identity.uuid
   }
+
   get username () {
     return this.identity.username
   }
+
   get plainUsername () {
     return ColorString.toPlainString(this.username)
   }
