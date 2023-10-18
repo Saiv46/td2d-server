@@ -2,12 +2,11 @@ const ColorString = require('./utils/colorstring')
 
 class ClientSession {
   constructor (client) {
-    this.id = (Math.random() * 0xffff) | 0
     this.lobby = null
     this.client = client
     this.userdata = null
     this.identity = null
-    this.write('ServerStatus', { isLobby: true, clientId: this.id })
+    this.write('ServerStatus', { isLobby: true, clientId: this.client.clientId })
     this.once('ClientPlayerInfoRequest', () => this.lobby?.onLobbyRequest(this))
     this.on('ClientLobbyReady', isReady => this.lobby?.onPlayerReady(this, isReady))
     this.on('PassthroughChatMessage', ({ sender, message }) => {
@@ -15,6 +14,10 @@ class ClientSession {
       this.lobby?.onChatMessage(this, message)
     })
     this.once('close', () => this.lobby?.onPlayerLeave(this))
+  }
+
+  get id () {
+    return this.client.clientId
   }
 
   get address () {

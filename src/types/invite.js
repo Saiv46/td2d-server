@@ -5,7 +5,7 @@ class InviteLobby extends StandaloneLobby {
   static MinID = parseInt('100', 36)
   static MaxID = parseInt('zzz', 36)
   static generateInvite () {
-    return Math.random() * (this.MaxID - this.MinID) + this.MinID
+    return Math.floor(Math.random() * (this.MaxID - this.MinID) + this.MinID)
   }
 
   constructor (server, invite) {
