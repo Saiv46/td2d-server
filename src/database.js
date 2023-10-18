@@ -2,12 +2,20 @@ const assert = require('node:assert/strict')
 const Postgres = require('postgres')
 const { randomUUID } = require('node:crypto')
 const SERVER_UUID = process.env.SERVER_UUID
+const POSTGRES_URI = process.env.POSTGRES_URI
 assert(SERVER_UUID, 'env.SERVER_UUID required')
+assert(POSTGRES_URI, 'env.POSTGRES_URI required')
 
 class Database {
   constructor (server) {
     this.uuid = SERVER_UUID
     this.server = server
+    this.sql = new Postgres(POSTGRES_URI, {
+      ssl: 'require',
+      transform: {
+        undefined: null
+      }
+    })
     this.sql.listen(`instances:${this.id}:stop`, () => this.server.exit())
   }
 
