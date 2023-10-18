@@ -52,7 +52,7 @@ class BaseLobby {
   }
 
   broadcastUdp (type, data, except = null) {
-    const buf = this.server.serializePacket(type, data)
+    const buf = this.server.serializePacketUdp(type, data)
     for (const session of this.sessions.values()) {
       if (session !== except) session.writeUdpRaw(buf)
     }

@@ -87,7 +87,7 @@ class BaseMap {
   register (session) {
     this.cooldowns.set(session, {})
     session.on('ClientPing', ({ timestamp, calculated }) => {
-      this.pings.set(session.id, (Date.now() - timestamp) | 0)
+      this.pings.set(session.id, calculated >> 1)
       session.writeUdp('ServerPong', { timestamp })
     })
     session.on('PassthroughPlayerState', state => {

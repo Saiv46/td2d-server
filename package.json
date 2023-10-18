@@ -17,6 +17,8 @@
   },
   "dependencies": {
     "debug": "^4.3.4",
+    "micro": "^10.0.1",
+    "micro-http-router": "^1.5.1",
     "postgres": "^3.3.5"
   }
 }
