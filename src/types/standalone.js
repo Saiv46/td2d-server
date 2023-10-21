@@ -125,7 +125,7 @@ class StandaloneLobby extends BaseLobby {
           const character = this.enums().exeCharacters.byId[characterId]
           if (!character) return this.triggerAnticheat(session)
           charsTaken.push(-characterId)
-          session.write('ServerExeCharacterSuccess', characterId)
+          session.write('ServerExeCharacterSuccess', characterId - 1)
           this.broadcast(
             'ServerCharSelectUpdate',
             { clientId: session.id, characterId },
@@ -180,13 +180,12 @@ class StandaloneLobby extends BaseLobby {
       this.mapState = new Maps[this.selectedMap](this)
       await this.mapState.init()
     } catch (e) {
-      this.broadcast('ServerReturnToLobby')
+      const promise = this.returnToLobby(false)
       console.trace(e)
       this.chatBroadcast(`${ColorString.RED}Map failed to load:`)
       this.chatBroadcast(ColorString.RED + e.message.toLowerCase())
       this.chatBroadcast(`${ColorString.YELLOW}Restarting game...`)
-      this.countdownLoop()
-      return
+      return promise
     }
     for (const session of this.sessions.values()) {
       this.mapState.register(session)
@@ -200,8 +199,7 @@ class StandaloneLobby extends BaseLobby {
     for (const session of this.sessions.values()) {
       this.mapState.unregister(session)
     }
-    this.broadcast('ServerReturnToLobby')
-    return this.destroy()
+    return this.returnToLobby()
   }
 
   onChatMessage (session, message) {
@@ -253,6 +251,16 @@ class StandaloneLobby extends BaseLobby {
       session.write('ServerPlayerLeft', clientId)
     }
     this.broadcast('ServerPlayerLeft', session.id)
+    session.write('ServerCountdown', { isCounting: false, inSeconds: 0 })
+  }
+
+  async returnToLobby (toDefault = true) {
+    if (toDefault) {
+      for (const session of this.sessions.values()) {
+        session.joinLobby(this.server.defaultLobby)
+      }
+    } else this.broadcast('ServerReturnToLobby')
+    return this.countdownLoop()
   }
 }
 
