@@ -28,12 +28,10 @@ class BaseLobby {
 
   onPlayerJoin (session) {
     this.sessions.set(session.id, session, this.constructor.name)
-    console.log(session.id, 'joined')
   }
 
   onPlayerLeave (session) {
     this.sessions.delete(session.id)
-    console.log(session.id, 'disconnected', this.constructor.name)
   }
 
   chatBroadcast (message, session = null) {

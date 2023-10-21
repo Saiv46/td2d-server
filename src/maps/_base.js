@@ -12,10 +12,6 @@ class BaseMap {
     this.lobby = lobby
     this.ended = false
 
-    this.started = performance.now()
-    this.timer = Math.floor(this.started / 1000)
-    this.timerStopped = false
-
     this.timeLimit = 30 // 120
     this.escapeTime = 15 // 60
     this.escapeDelay = 5 // 10
@@ -66,9 +62,7 @@ class BaseMap {
     }
   }
 
-  async init () {
-
-  }
+  async init () {}
 
   makeCooldown (session, name, timer) {
     const cds = this.cooldowns.get(session)
@@ -97,18 +91,27 @@ class BaseMap {
       this.pings.set(session.id, calculated >> 1)
       session.writeUdp('ServerPong', { timestamp })
     })
-    session.on('PassthroughPlayerState', state => {
-      if (state.clientId !== session.id) return this.lobby.triggerAnticheat(session)
+    session.on('PassthroughPlayerState', (state) => {
+      if (state.clientId !== session.id) { return this.lobby.triggerAnticheat(session) }
       this.lobby.broadcastUdp('PassthroughPlayerState', state, session)
     })
     switch (this.lobby.characters.get(session)) {
       case 'Tails':
-        session.on('ClientTailsProjectileFire', params => {
+        session.on('ClientTailsProjectileFire', (params) => {
           try {
-            if (!this.makeCooldown(session, 'projectile', TailsProjectile.Cooldown)) throw new Error('TPOJ_COOLDOWN')
+            if (
+              !this.makeCooldown(
+                session,
+                'projectile',
+                TailsProjectile.Cooldown
+              )
+            ) { throw new Error('TPOJ_COOLDOWN') }
             TailsProjectile.validate(this, params, session)
           } catch (err) {
-            return this.lobby.triggerAnticheat(session, `Validation failed: ${err.message}`)
+            return this.lobby.triggerAnticheat(
+              session,
+              `Validation failed: ${err.message}`
+            )
           }
           this.spawnEntity(TailsProjectile, params)
         })
@@ -133,29 +136,39 @@ class BaseMap {
       this.lobby.broadcast('ServerPlayerPing', { clientId, calculated })
     }
     if (this.timerStopped) {
-      if (timer < -5) this.ended = true
+      if (timer < -7) this.ended = true
       return
     }
-    if (timer >= 0) this.lobby.broadcast('ServerGameTimer', timer * GameTimers.Second)
-    if (!this.escapeStarted && timer <= this.escapeTime) this.startEscapeSequence()
-    if (!this.escapeActivated && timer <= this.escapeTime - this.escapeDelay) this.activateEscapeSequence()
+    if (this.timer > 0) {
+      this.lobby.broadcast(
+        'ServerGameTimer',
+        Math.floor(
+          (timer * GameTimers.TickRate) + (timer / this.timeLimit * GameTimers.TickRate)
+        )
+      )
+    }
+    if (!this.escapeStarted && timer <= this.escapeTime) { this.startEscapeSequence() }
+    if (!this.escapeActivated && timer <= this.escapeTime - this.escapeDelay) { this.activateEscapeSequence() }
     if (timer <= 0) this.endGame(BaseMap.Winner.TimeOver)
 
     if (!this.escapeStarted && timer < this.escapeTime) {
       this.startEscapeSequence()
     }
-    if (!this.escapeActivated && this.escapeCondition && timer < this.escapeTime - this.escapeDelay) {
+    if (
+      !this.escapeActivated &&
+      this.escapeCondition &&
+      timer < this.escapeTime - this.escapeDelay
+    ) {
       this.activateEscapeSequence()
     }
-    if (timer < -5) this.stopped = true
   }
 
   tick (deltaTime) {
     const timer = this.timeLimit - Math.floor((performance.now() - this.started) / 1000)
     while (timer < this.timer) {
-        this.interval(timer)
+      this.interval(timer)
       this.timer--
-      }
+    }
     for (const entity of this.entities.values()) {
       entity.onTick(deltaTime)
     }

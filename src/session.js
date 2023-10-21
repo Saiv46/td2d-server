@@ -58,8 +58,10 @@ class ClientSession {
   }
 
   async joinLobby (lobby) {
+    try {
+      await this.lobby?.onPlayerLeave(this)
+    } catch {}
     await lobby.onPlayerJoin(this)
-    await this.lobby?.onPlayerLeave(this)
     this.lobby = lobby
   }
 
