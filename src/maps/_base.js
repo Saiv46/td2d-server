@@ -20,9 +20,14 @@ class BaseMap {
     this.escapeTime = 15 // 60
     this.escapeDelay = 5 // 10
 
+    this.started = performance.now()
+    this.timer = this.timeLimit
+    this.timerStopped = false
+
     this.escapeStarted = false
     this.escapeCondition = true
     this.escapeActivated = false
+    this.escapeRingLocation = Math.floor(Math.random() * 256)
 
     this.enums = lobby.enums()
     this.limits = lobby.limits()
@@ -36,11 +41,13 @@ class BaseMap {
   async activateEscapeSequence () {
     if (this.escapeActivated) return
     this.escapeActivated = true
+    this.lobby.broadcast('ServerGameSpawnEscape', { active: false, location: this.escapeRingLocation })
   }
 
   async startEscapeSequence () {
     if (this.escapeStarted || !this.escapeCondition) return
     this.escapeStarted = true
+    this.lobby.broadcast('ServerGameSpawnEscape', { active: true, location: this.escapeRingLocation })
   }
 
   async endGame (winner = BaseMap.Winner.TimeOver) {
@@ -144,13 +151,13 @@ class BaseMap {
   }
 
   tick (deltaTime) {
-    const time = performance.now() - this.startTime
-    if (!this.timerStopped) {
-      const timer = this.timeLimit - Math.floor(time / 1000)
-      while (timer > this.timer) {
+    const timer = this.timeLimit - Math.floor((performance.now() - this.started) / 1000)
+    while (timer < this.timer) {
         this.interval(timer)
-        this.timer++
+      this.timer--
       }
+    for (const entity of this.entities.values()) {
+      entity.onTick(deltaTime)
     }
   }
 }
