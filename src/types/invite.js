@@ -11,6 +11,7 @@ class InviteLobby extends StandaloneLobby {
   constructor (server, invite) {
     super(server)
     this.invite = invite
+    this.logger(`Invite code: ${invite.toString(36).toUpperCase()}`)
   }
 
   destroy () {

@@ -57,6 +57,7 @@ class StandaloneLobby extends BaseLobby {
     for await (const _ of GameTimers.steadyInterval(null, this.ac.signal)) {
       if (!this.sessions.size) return this.destroy()
       if (!timer) break
+      this.logger(`Game starts in ${timer} seconds`)
       this.broadcast('ServerCountdown', {
         isCounting: true,
         inSeconds: timer--
@@ -69,6 +70,7 @@ class StandaloneLobby extends BaseLobby {
     if (this.rules.skipMapVote || this.allowedMaps.length === 1) {
       this.selectedMap =
         this.allowedMaps[(Math.random() * this.allowedMaps.length) | 0]
+      this.logger(`Vote is skipped, selected map: ${this.selectedMap}`)
       return this.characterSelectLoop()
     }
     this.waiting = false
@@ -97,12 +99,14 @@ class StandaloneLobby extends BaseLobby {
       if (!this.sessions.size) return this.destroy()
       if (!timer) break
       if (!pendingVotes.size && timer > 5) timer = 5
+      this.logger(`Vote ends in ${this.selectedMap} seconds`)
       this.broadcast('ServerVoteTimer', timer--)
     }
     const votes = Math.max(...voteResults)
     const index = voteResults.indexOf(votes)
     const index2 = voteResults.lastIndexOf(votes)
     this.selectedMap = maps[Math.random() < 0.5 ? index : index2]
+    this.logger(`Vote ended, selected map: ${this.selectedMap}`)
     for (const session of pendingVotes) {
       session.off('ClientMapVote')
       pendingVotes.delete(session)
@@ -114,6 +118,7 @@ class StandaloneLobby extends BaseLobby {
     const ids = Array.from(this.sessions.keys())
     const charsTaken = []
     this.selectedEXE = ids[(Math.random() * ids.length) | 0]
+    this.logger(`Selected EXE is player#${this.selectedEXE}`)
     this.broadcast('ServerCharSelectStart', {
       currentEXE: this.selectedEXE,
       selectedMap: this.enums().maps.byName[this.selectedMap]
@@ -163,6 +168,7 @@ class StandaloneLobby extends BaseLobby {
     for await (const _ of GameTimers.steadyInterval(null, this.ac.signal)) {
       if (!this.sessions.size) return this.destroy()
       if (!timer || charsTaken.length === this.sessions.size) break
+      this.logger(`Character select ends in ${timer} seconds`)
       this.broadcast('ServerCharSelectTimer', timer--)
     }
     for (const session of this.sessions.values()) {
@@ -175,6 +181,7 @@ class StandaloneLobby extends BaseLobby {
   }
 
   async gameLoop () {
+    this.logger(`Loading map "${this.selectedMap}"...`)
     this.broadcast('ServerGameStart')
     try {
       this.mapState = new Maps[this.selectedMap](this)
@@ -187,18 +194,22 @@ class StandaloneLobby extends BaseLobby {
       this.chatBroadcast(`${ColorString.YELLOW}Restarting game...`)
       return promise
     }
+    this.logger(`Registering ${this.sessions.size} players...`)
     for (const session of this.sessions.values()) {
       this.mapState.register(session)
     }
+    this.logger('Game started')
     this.broadcast('ServerMapLoaded')
     for await (const deltaTime of GameTimers.dynamicTick(this.ac.signal)) {
       if (!this.sessions.size) return this.destroy()
       this.mapState.tick(deltaTime)
       if (this.mapState.ended) break
     }
+    this.logger(`Unregistering ${this.sessions.size} players...`)
     for (const session of this.sessions.values()) {
       this.mapState.unregister(session)
     }
+    this.logger(`Returning to lobby`)
     return this.returnToLobby()
   }
 

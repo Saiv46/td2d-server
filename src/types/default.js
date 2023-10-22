@@ -36,6 +36,7 @@ class DefaultLobby extends BaseLobby {
     // eslint-disable-next-line no-unused-vars
     for await (const _ of GameTimers.steadyInterval(null, this.ac.signal)) {
       if (!this.queue.size) continue
+      this.logger('Queue size:', this.queue.size)
       while (this.queue.size >= 1) {
         const queue = this.queue.values()
         const lobby = new StandaloneLobby(this.server)
@@ -61,6 +62,7 @@ class DefaultLobby extends BaseLobby {
         }
       }
       for (const session of this.queue.values()) {
+        if (!this.queueTime.has(session)) continue
         if (
           Date.now() - this.queueTime.get(session) >
           DefaultLobby.NormalQueueWaitTime
@@ -98,6 +100,7 @@ class DefaultLobby extends BaseLobby {
   onChatMessage (session, message) {
     message = ColorString.toPlainString(message)
     if (message.startsWith('.')) {
+      this.logger(`Player #${session.id} issued command: ${message}`)
       switch (message) {
         case '.a':
         case '.amogus':
@@ -129,7 +132,7 @@ class DefaultLobby extends BaseLobby {
         case '.p':
         case '.practice':
           // TODO: Practice
-          session.chat(`${ColorString.RED}`)
+          session.chat(`${ColorString.RED}not implemented`)
           break
         case '.i':
         case '.invite':
@@ -162,6 +165,7 @@ class DefaultLobby extends BaseLobby {
       }
     }
     if (!this.queue.has(session)) { return session.chat(`${ColorString.RED}find game to chat`) }
+    this.logger(`Message from #${session.id} to queue: ${message}`)
     for (const session2 of this.queue.values()) {
       if (session2 !== session) {
         session2.chat(
@@ -173,6 +177,7 @@ class DefaultLobby extends BaseLobby {
 
   onPlayerReady (session, isReady) {
     if (isReady) {
+      this.logger(`Player #${session.id} joined queue`)
       this.queue.add(session)
       this.queueTime.set(session, Date.now())
       session.chat(
@@ -180,6 +185,7 @@ class DefaultLobby extends BaseLobby {
           `${ColorString.WHITE}press ${ColorString.YELLOW}ready ${ColorString.WHITE}to stop\n`
       )
     } else {
+      this.logger(`Player #${session.id} left queue`)
       this.queue.delete(session)
       this.onLobbyRequest(session)
     }

@@ -1,3 +1,4 @@
+const debug = require('debug')('td2d-server')
 const { once } = require('node:events')
 const timers = require('node:timers/promises')
 const { createServer } = require('td2d-protocol')
@@ -9,8 +10,12 @@ const DefaultLobby = require('./types/default')
 const Database = require('./database')
 const createEndpoint = require('./http')
 
+const debugBroadcast = debug.extend('broadcast')
+
 async function makeServer () {
   const server = await createServer()
+  server.logger = debug
+  server.loggerBroadcast = debugBroadcast
   server.defaultLobby = new DefaultLobby(server)
   server.normalLobbies = new Set()
   server.inviteLobbies = new Map()
