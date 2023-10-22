@@ -133,7 +133,7 @@ class BaseMap {
 
   interval (timer) {
     for (const [clientId, calculated] of this.pings.entries()) {
-      this.lobby.broadcast('ServerPlayerPing', { clientId, calculated })
+      this.lobby.broadcastUdp('ServerPlayerPing', { clientId, calculated })
     }
     if (this.timerStopped) {
       if (timer < -7) this.ended = true
