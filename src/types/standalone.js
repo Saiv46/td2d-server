@@ -209,7 +209,7 @@ class StandaloneLobby extends BaseLobby {
     for (const session of this.sessions.values()) {
       this.mapState.unregister(session)
     }
-    this.logger(`Returning to lobby`)
+    this.logger('Returning to lobby')
     return this.returnToLobby()
   }
 
