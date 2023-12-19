@@ -13,7 +13,7 @@ const createEndpoint = require('./http')
 const debugBroadcast = debug.extend('broadcast')
 
 async function makeServer () {
-  const server = await createServer()
+  const server = await createServer({ version: 1013 })
   server.logger = debug
   server.loggerBroadcast = debugBroadcast
   server.defaultLobby = new DefaultLobby(server)
