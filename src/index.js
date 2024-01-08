@@ -56,7 +56,6 @@ async function makeServer () {
     server.database.appendPlayerJournal(userdata.uuid, session.username)
     session.joinLobby(server.defaultLobby).catch(() => session.disconnect())
   })
-  server.on('error', err => console.trace('Server unhandled error:', err))
   server.once('close', err => {
     console.log('Server closed, reason:', err)
     process.exit(err ? 1 : 0)
